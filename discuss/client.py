@@ -116,6 +116,34 @@ class Meeting(object):
                 else:
                     raise err
 
+    def post(self, text, subject, signature = None, reply_to = 0):
+        request = USPBlock(constants.PROC_BASE + (constants.ADD_TRN2 if signature else constants.ADD_TRN))
+        request.put_string(self.name)
+        request.put_long_integer(len(text))
+        request.put_string(subject)
+        if signature:
+            request.put_string(signature)
+        request.put_long_integer(reply_to)
+
+        # Yes, there is no two-byte padding involved.
+        # I was actually surprised. It is quite possible
+        # that this is actually broken in some clever way.
+        tfile = USPBlock(constants.TFILE_BLK)
+        tfile.buffer = text
+
+        self.rpc.send(request)
+        self.rpc.send(tfile)
+        reply = self.rpc.receive()
+        if reply.block_type != constants.REPLY_TYPE:
+            raise ProtocolError("Transport-level error")
+        
+        new_id = reply.read_long_integer()
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
+        return self.get_transaction(new_id)
+
 class Transaction(object):
     def __init__(self, meeting, number):
         self.meeting = meeting
