@@ -1,0 +1,28 @@
+== pydiscuss ==
+
+pydiscuss is a pure-Python implementation of Project Athena forum protocol
+called discuss. It aims to work well with the existing servers, although
+as a clean-start implementation it may not handle several edge cases correctly.
+
+=== Example code ===
+
+import discuss
+
+# Open connection to the server
+cl = discuss.Client("charon.mit.edu")
+
+# Pick our meeting
+mtg = discuss.Meeting(cl, "/var/spool/discuss/vasilvv-test")
+
+# Read the description
+mtg.load_info()
+print mtg.long_name
+
+# Read all the transaction headers and print them
+for trn in mtg.transactions():
+    print "[%i] %s <%s (%s)>" % (trn.number, trn.subject, trn.signature, trn.author)
+
+# Print the text of the last one
+print "----- Text -----"
+print mtg.get_transaction(mtg.last).get_text()
+
