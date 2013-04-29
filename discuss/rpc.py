@@ -199,7 +199,8 @@ class USPBlock(object):
         """Receives a block sent over the network."""
 
         header = sock.recv(2)
-        block = USPBlock(unpack("!H", header))
+        block_type, = unpack("!H", header)
+        block = USPBlock(block_type)
 
         # Note that here I deliberately increase the size compared to send()
         # because some of the code suggests that blocks larger than 512 bytes
@@ -269,4 +270,12 @@ class RPCClient(object):
 
     def receive(self):
         return USPBlock.receive(self.socket)
+
+    def request(self, block):
+        block.block_type += constants.PROC_BASE
+        self.send(block)
+        reply = self.receive()
+        if reply.block_type != constants.REPLY_TYPE:
+            raise ProtocolError("Transport-level error")
+        return reply
 
