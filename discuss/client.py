@@ -105,13 +105,13 @@ class Meeting(object):
             end = self.last
 
         next = start
-        while next < end:
+        while next <= end and next != 0:
             try:
                 trn = self.get_transaction(next)
                 yield trn
                 next = trn.next
             except DiscussError as err:
-                if err.code == DELETED_TRN:
+                if err.code == constants.DELETED_TRN:
                     next += 1
                 else:
                     raise err
@@ -120,3 +120,21 @@ class Transaction(object):
     def __init__(self, meeting, number):
         self.meeting = meeting
         self.number = number
+        self.rpc = meeting.rpc
+
+    def get_text(self):
+        request = USPBlock(constants.PROC_BASE + constants.GET_TRN)
+        request.put_string(self.meeting.name)
+        request.put_long_integer(self.number)
+        request.put_long_integer(0)
+        self.rpc.send(request)
+
+        tfile = self.rpc.receive()
+        reply = self.rpc.receive()
+        if tfile.block_type != constants.TFILE_BLK or reply.block_type != constants.REPLY_TYPE:
+            raise ProtocolError("Bad server response when retriving transaction contents")
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
+        return tfile.buffer
