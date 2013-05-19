@@ -20,23 +20,39 @@ class DiscussError(Exception):
         else:
             Exception.__init__(self, "Unknown discuss error (code %i)" % code)
 
+#
+# Here is a practcal description of discuss protocol:
+# 1. Connection is establised.
+# 2. Clients send server a block with a Kerberos ticket. Server is silent.
+# 3. Client sends commands. Each command has block type of "command code + 400",
+#    each response has to be 0 or an error code.
+
 class Client(object):
+    """Discuss client."""
+
     def __init__(self, server, port = 2100, auth = True, timeout = None):
         self.rpc = RPCClient(server, port, auth, timeout)
         if auth and self.who_am_i().startswith("???@"):
             raise ProtocolError("Authentication to server failed")
 
     def get_server_version(self):
+        """Ask server for the server version number"""
+
         request = USPBlock(constants.GET_SERVER_VERSION)
         reply = self.rpc.request(request)
         return reply.read_long_integer()
 
     def who_am_i(self):
+        """Ask server for the Kerberos principal with which discuss identified
+        the client after the handshake."""
+
         request = USPBlock(constants.WHO_AM_I)
         reply = self.rpc.request(request)
         return reply.read_string()
 
 class Meeting(object):
+    """Discuss meeting."""
+
     def __init__(self, client, name):
         self.client = client
         self.rpc = client.rpc
@@ -44,6 +60,8 @@ class Meeting(object):
         self.info_loaded = False
 
     def load_info(self, force = False):
+        """Load all the properties into the class."""
+
         if self.info_loaded and not force:
             return
 
@@ -70,6 +88,8 @@ class Meeting(object):
         self.info_loaded = True
 
     def get_transaction(self, number):
+        """Retrieve the informataion about a transaction using the number."""
+
         request = USPBlock(constants.GET_TRN_INFO3)
         request.put_string(self.name)
         request.put_long_integer(number)
@@ -100,6 +120,9 @@ class Meeting(object):
         return trn
 
     def transactions(self, start = 1, end = -1):
+        """Return an iterator over the given range of transaction. Without
+        arguments, iterates over all transactions."""
+
         if end == -1:
             self.load_info()
             end = self.last
@@ -117,6 +140,8 @@ class Meeting(object):
                     raise err
 
     def post(self, text, subject, signature = None, reply_to = 0):
+        """Add a transaction to the meeting."""
+
         request = USPBlock(constants.PROC_BASE + (constants.ADD_TRN2 if signature else constants.ADD_TRN))
         request.put_string(self.name)
         request.put_long_integer(len(text))
@@ -125,9 +150,9 @@ class Meeting(object):
             request.put_string(signature)
         request.put_long_integer(reply_to)
 
-        # Yes, there is no two-byte padding involved.
-        # I was actually surprised. It is quite possible
-        # that this is actually broken in some clever way.
+        # Yes, there is no two-byte padding involved.  I was actually
+        # surprised. It is quite possible that this is actually broken in some
+        # clever way.
         tfile = USPBlock(constants.TFILE_BLK)
         tfile.buffer = text
 
@@ -145,12 +170,16 @@ class Meeting(object):
         return self.get_transaction(new_id)
 
 class Transaction(object):
+    """Discuss transaction. Returned by methods of the meeting object."""
+
     def __init__(self, meeting, number):
         self.meeting = meeting
         self.number = number
         self.rpc = meeting.rpc
 
     def get_text(self):
+        """Retrieve the text of the transaction."""
+
         request = USPBlock(constants.PROC_BASE + constants.GET_TRN)
         request.put_string(self.meeting.name)
         request.put_long_integer(self.number)
