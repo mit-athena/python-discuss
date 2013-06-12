@@ -87,6 +87,24 @@ class Meeting(object):
 
         self.info_loaded = True
 
+    def check_update(self, last):
+        """Check whether the meeting has updated since last time we looked at it.
+        Returns true if given last < real last, false if they are equal and error
+        if given is greater than real."""
+
+        request = USPBlock(constants.UPDATED_MTG)
+        request.put_string(self.name)
+        request.put_long_integer(0) # This is the timestamp which server disregards
+        request.put_long_integer(last)
+        reply = self.rpc.request(request)
+        updated = reply.read_boolean()
+
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
+        return updated
+
     def get_transaction(self, number):
         """Retrieve the informataion about a transaction using the number."""
 
