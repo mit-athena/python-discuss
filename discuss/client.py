@@ -187,6 +187,56 @@ class Meeting(object):
 
         return self.get_transaction(new_id)
 
+    def get_acl(self):
+        """Retrieve the access list of the meeting. Returns the list
+        of principal-access tuples."""
+
+        request = USPBlock(constants.GET_ACL)
+        request.put_string(self.name)
+        reply = self.rpc.request(request)
+
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
+        length = reply.read_long_integer()
+        acl = []
+        for i in range(length):
+            modes = reply.read_string()
+            principal = reply.read_string()
+            # Note: this level of abstraction is probably thinner then I'd like
+            acl.append( (principal, modes) )
+
+        return acl
+
+    def get_access(self, principal):
+        """Retrieve the access mode of a given Kerberos principal."""
+
+        request = USPBlock(constants.GET_ACCESS)
+        request.put_string(self.name)
+        request.put_string(principal)
+        reply = self.rpc.request(request)
+
+        modes = reply.read_string()
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
+        return modes
+
+    def set_access(self, principal, modes):
+        """Changes the access mode of the given principal."""
+
+        request = USPBlock(constants.SET_ACCESS)
+        request.put_string(self.name)
+        request.put_string(principal)
+        request.put_string(modes)
+        reply = self.rpc.request(request)
+
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
 class Transaction(object):
     """Discuss transaction. Returned by methods of the meeting object."""
 
