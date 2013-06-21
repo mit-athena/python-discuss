@@ -57,6 +57,7 @@ class Meeting(object):
         self.client = client
         self.rpc = client.rpc
         self.name = name
+        self.id = (self.rpc.server, name)
         self.info_loaded = False
 
     def load_info(self, force = False):

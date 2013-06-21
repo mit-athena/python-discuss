@@ -228,7 +228,7 @@ class USPBlock(object):
 
 class RPCClient(object):
     def __init__(self, server, port, auth = True, timeout = None):
-        self.server = socket.getfqdn(server)
+        self.server = socket.getfqdn(server).lower()
         self.socket = socket.create_connection((server, port), timeout)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
