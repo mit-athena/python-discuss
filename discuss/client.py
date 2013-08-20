@@ -106,17 +106,27 @@ class Meeting(object):
 
         return updated
 
-    def get_transaction(self, number):
-        """Retrieve the informataion about a transaction using the number."""
+    def request_transaction(self, number):
+        """Send request for the tranasction into the connection."""
 
         request = USPBlock(constants.GET_TRN_INFO3)
         request.put_string(self.name)
         request.put_long_integer(number)
-        reply = self.rpc.request(request)
+
+        request.block_type += constants.PROC_BASE
+        self.rpc.send(request)
+
+    def receive_transaction(self):
+        """Read the transaction from the connection."""
+
+        reply = self.rpc.receive()
+
+        version = reply.read_long_integer()
+        number = reply.read_long_integer()
 
         trn = Transaction(self, number)
-        trn.version = reply.read_long_integer()
-        trn.current = reply.read_long_integer()
+        trn.version = version
+        trn.current = number
         trn.prev = reply.read_long_integer()
         trn.next = reply.read_long_integer()
         trn.pref = reply.read_long_integer()
@@ -138,6 +148,14 @@ class Meeting(object):
 
         return trn
 
+    def get_transaction(self, number):
+        """Retrieve the informataion about a transaction using the number."""
+
+        self.request_transaction(number)
+
+        return self.receive_transaction()
+
+
     def transactions(self, start = 1, end = -1):
         """Return an iterator over the given range of transaction. Without
         arguments, iterates over all transactions."""
@@ -146,17 +164,29 @@ class Meeting(object):
             self.load_info()
             end = self.last
 
-        next = start
-        while next <= end and next != 0:
-            try:
-                trn = self.get_transaction(next)
-                yield trn
-                next = trn.next
-            except DiscussError as err:
-                if err.code == constants.DELETED_TRN:
-                    next += 1
-                else:
-                    raise err
+        to_request = end - start + 1
+        to_read = end - start + 1
+        buffer_size = 500   # Amount of requests which may be sent at one instant
+        cur = start
+
+        result = []
+        while to_read != 0:
+            if to_read - to_request <= buffer_size:
+                # Send another request
+                self.request_transaction(cur)
+                cur += 1
+                to_request -= 1
+            else:
+                # Start reading things
+                try:
+                    trn = self.receive_transaction()
+                    result.append(trn)
+                except DiscussError as err:
+                    if err.code != constants.DELETED_TRN:
+                        raise err
+                to_read -= 1
+
+        return result
 
     def post(self, text, subject, signature = None, reply_to = 0):
         """Add a transaction to the meeting."""
