@@ -156,7 +156,7 @@ class Meeting(object):
         return self.receive_transaction()
 
 
-    def transactions(self, start = 1, end = -1):
+    def transactions(self, start = 1, end = -1, feedback = None):
         """Return an iterator over the given range of transaction. Without
         arguments, iterates over all transactions."""
 
@@ -165,13 +165,13 @@ class Meeting(object):
             end = self.last
 
         to_request = end - start + 1
-        to_read = end - start + 1
+        to_read = to_request
         buffer_size = 500   # Amount of requests which may be sent at one instant
         cur = start
 
         result = []
         while to_read != 0:
-            if to_read - to_request <= buffer_size:
+            if to_read - to_request <= buffer_size and to_request > 0:
                 # Send another request
                 self.request_transaction(cur)
                 cur += 1
@@ -181,6 +181,8 @@ class Meeting(object):
                 try:
                     trn = self.receive_transaction()
                     result.append(trn)
+                    if feedback:
+                        feedback(cur = trn.number, total = end - start + 1, left = to_read)
                 except DiscussError as err:
                     if err.code != constants.DELETED_TRN:
                         raise err
