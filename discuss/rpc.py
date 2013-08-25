@@ -41,6 +41,7 @@
 # exported in the header file. On, and the whole suite is written in K&R C.
 #
 
+import errno
 import socket
 from struct import pack, unpack, calcsize
 from functools import partial
@@ -229,11 +230,22 @@ class USPBlock(object):
 class RPCClient(object):
     def __init__(self, server, port, auth = True, timeout = None):
         self.server = socket.getfqdn(server).lower()
-        self.socket = socket.create_connection((server, port), timeout)
+        self.port = port
+        self.auth = auth
+        self.timeout = timeout
+
+        self.connect()
+        self.make_wrapper()
+
+    def connect(self):
+        self.socket = socket.create_connection((self.server, self.port), self.timeout)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
+        if not hasattr(self, 'wrapper'):
+            self.wrapper = self.socket
+
         auth_block = USPBlock(constants.KRB_TICKET)
-        if auth:
+        if self.auth:
             authenticator = _get_krb5_ap_req( "discuss", self.server )
 
             # Discuss does the same thing for authentication as Moira does: it
@@ -266,11 +278,33 @@ class RPCClient(object):
 
         self.send(auth_block)
 
+    def make_wrapper(self):
+        class SocketWrapper(object):
+            def recv(self2, *args, **kwargs):
+                try:
+                    return self.socket.recv(*args, **kwargs)
+                except socket.error as err:
+                    if err.errno == errno.EINTR:
+                        self2.recv(*arg, **kwargs)
+                    else:
+                        raise err
+
+            def sendall(self2, *args, **kwargs):
+                try:
+                    return self.socket.sendall(*args, **kwargs)
+                except socket.error as err:
+                    if err.errno == errno.EINTR:
+                        self2.sendall(*arg, **kwargs)
+                    else:
+                        raise err
+
+        self.wrapper = SocketWrapper()
+
     def send(self, block):
-        block.send(self.socket)
+        block.send(self.wrapper)
 
     def receive(self):
-        return USPBlock.receive(self.socket)
+        return USPBlock.receive(self.wrapper)
 
     def request(self, block):
         block.block_type += constants.PROC_BASE
