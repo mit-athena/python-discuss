@@ -7,7 +7,10 @@
 
 from .rpc import USPBlock, RPCClient, ProtocolError
 from . import constants
+
+from functools import wraps
 import datetime
+import socket
 
 class DiscussError(Exception):
     """An error returned from Discuss server itself which has a Discuss error code."""
@@ -19,6 +22,16 @@ class DiscussError(Exception):
             Exception.__init__(self, "Discuss error: %s" % constants.errors[code])
         else:
             Exception.__init__(self, "Unknown discuss error (code %i)" % code)
+
+def autoreconnects(f):
+    @wraps(f)
+    def autoreconnect(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except socket.timeout:
+            self.rpc.connect()
+            return f(self, *args, **kwargs)
+    return autoreconnect
 
 #
 # Here is a practcal description of discuss protocol:
@@ -35,6 +48,7 @@ class Client(object):
         if auth and self.who_am_i().startswith("???@"):
             raise ProtocolError("Authentication to server failed")
 
+    @autoreconnects
     def get_server_version(self):
         """Ask server for the server version number"""
 
@@ -42,6 +56,7 @@ class Client(object):
         reply = self.rpc.request(request)
         return reply.read_long_integer()
 
+    @autoreconnects
     def who_am_i(self):
         """Ask server for the Kerberos principal with which discuss identified
         the client after the handshake."""
@@ -60,6 +75,7 @@ class Meeting(object):
         self.id = (self.rpc.server, name)
         self.info_loaded = False
 
+    @autoreconnects
     def load_info(self, force = False):
         """Load all the properties into the class."""
 
@@ -88,6 +104,7 @@ class Meeting(object):
 
         self.info_loaded = True
 
+    @autoreconnects
     def check_update(self, last):
         """Check whether the meeting has updated since last time we looked at it.
         Returns true if given last < real last, false if they are equal and error
@@ -106,6 +123,7 @@ class Meeting(object):
 
         return updated
 
+    @autoreconnects
     def request_transaction(self, number):
         """Send request for the tranasction into the connection."""
 
@@ -116,6 +134,7 @@ class Meeting(object):
         request.block_type += constants.PROC_BASE
         self.rpc.send(request)
 
+    @autoreconnects
     def receive_transaction(self):
         """Read the transaction from the connection."""
 
@@ -148,6 +167,7 @@ class Meeting(object):
 
         return trn
 
+    @autoreconnects
     def get_transaction(self, number):
         """Retrieve the informataion about a transaction using the number."""
 
@@ -155,7 +175,7 @@ class Meeting(object):
 
         return self.receive_transaction()
 
-
+    @autoreconnects
     def transactions(self, start = 1, end = -1, feedback = None):
         """Return an iterator over the given range of transaction. Without
         arguments, iterates over all transactions."""
@@ -190,6 +210,7 @@ class Meeting(object):
 
         return result
 
+    @autoreconnects
     def post(self, text, subject, signature = None, reply_to = 0):
         """Add a transaction to the meeting."""
 
@@ -220,6 +241,7 @@ class Meeting(object):
 
         return self.get_transaction(new_id)
 
+    @autoreconnects
     def get_acl(self):
         """Retrieve the access list of the meeting. Returns the list
         of principal-access tuples."""
@@ -242,6 +264,7 @@ class Meeting(object):
 
         return acl
 
+    @autoreconnects
     def get_access(self, principal):
         """Retrieve the access mode of a given Kerberos principal."""
 
@@ -257,6 +280,7 @@ class Meeting(object):
 
         return modes
 
+    @autoreconnects
     def set_access(self, principal, modes):
         """Changes the access mode of the given principal."""
 
@@ -278,6 +302,7 @@ class Transaction(object):
         self.number = number
         self.rpc = meeting.rpc
 
+    @autoreconnects
     def get_text(self):
         """Retrieve the text of the transaction."""
 
