@@ -285,7 +285,7 @@ class RPCClient(object):
                     return self.socket.recv(*args, **kwargs)
                 except socket.error as err:
                     if err.errno == errno.EINTR:
-                        self2.recv(*arg, **kwargs)
+                        return self2.recv(*args, **kwargs)
                     else:
                         raise err
 
@@ -294,7 +294,7 @@ class RPCClient(object):
                     return self.socket.sendall(*args, **kwargs)
                 except socket.error as err:
                     if err.errno == errno.EINTR:
-                        self2.sendall(*arg, **kwargs)
+                        return self2.sendall(*args, **kwargs)
                     else:
                         raise err
 
