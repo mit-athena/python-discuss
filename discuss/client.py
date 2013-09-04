@@ -35,7 +35,7 @@ def autoreconnects(f):
 
 #
 # Here is a practcal description of discuss protocol:
-# 1. Connection is establised.
+# 1. Connection is established.
 # 2. Clients send server a block with a Kerberos ticket. Server is silent.
 # 3. Client sends commands. Each command has block type of "command code + 400",
 #    each response has to be 0 or an error code.
