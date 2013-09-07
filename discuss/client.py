@@ -65,6 +65,11 @@ class Client(object):
         reply = self.rpc.request(request)
         return reply.read_string()
 
+    def close(self):
+        """Disconnect from the server."""
+
+        self.rpc.socket.close()
+
 class Meeting(object):
     """Discuss meeting."""
 
