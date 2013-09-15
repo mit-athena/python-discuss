@@ -299,6 +299,19 @@ class Meeting(object):
         if result != 0:
             raise DiscussError(result)
 
+    @autoreconnects
+    def undelete_transaction(self, trn_number):
+        """Undelete the transaction by its number."""
+
+        request = USPBlock(constants.RETRIEVE_TRN)
+        request.put_string(self.name)
+        request.put_long_integer(trn_number)
+        reply = self.rpc.request(request)
+
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
 class Transaction(object):
     """Discuss transaction. Returned by methods of the meeting object."""
 
@@ -326,3 +339,16 @@ class Transaction(object):
             raise DiscussError(result)
 
         return tfile.buffer
+
+    @autoreconnects
+    def delete(self):
+        """Delete the transaction."""
+
+        request = USPBlock(constants.DELETE_TRN)
+        request.put_string(self.meeting.name)
+        request.put_long_integer(self.number)
+        reply = self.rpc.request(request)
+
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
