@@ -8,7 +8,7 @@
 from .rpc import USPBlock, RPCClient, ProtocolError
 from . import constants
 
-from functools import wraps
+from functools import total_ordering, wraps
 import datetime
 import socket
 
@@ -312,6 +312,7 @@ class Meeting(object):
         if result != 0:
             raise DiscussError(result)
 
+@total_ordering
 class Transaction(object):
     """Discuss transaction. Returned by methods of the meeting object."""
 
@@ -352,3 +353,12 @@ class Transaction(object):
         result = reply.read_long_integer()
         if result != 0:
             raise DiscussError(result)
+
+    def __le__(self, other):
+        return self.number < other.number
+
+    def __eq__(self, other):
+        if isinstance(other, Transaction):
+            return self.number == other.number and self.meeting.name == other.meeting.name
+        else:
+            return False
