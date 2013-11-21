@@ -60,7 +60,7 @@ class RCFile:
         rcfile = open(self.location, "r")
         entries = {}
         for line in rcfile:
-            match = re.match(r"^(\d):(\d+):(\d+):([a-z.\-]+):([^:]+):([^:]+):$", line.strip())
+            match = re.match(r"^(\d):(\d+):(\d+):([a-zA-Z\d.\-]+):([^:]+):([^:]+):$", line.strip())
             if not match:
                 raise ValueError("Malformed .meetings file entry")
             status = int(match.group(1))
@@ -69,7 +69,7 @@ class RCFile:
                 'deleted' : bool(status & 0x02),
                 'last_timestamp' : int(match.group(2)),
                 'last_transaction' : int(match.group(3)),
-                'hostname' : match.group(4),
+                'hostname' : match.group(4).lower(),
                 'path' : match.group(5),
                 'names' : match.group(6).split(','),
             }
