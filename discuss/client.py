@@ -77,6 +77,7 @@ class Meeting(object):
         self.client = client
         self.rpc = client.rpc
         self.name = name
+        self.short_name = name.split('/')[-1]
         self.id = (self.rpc.server, name)
         self.info_loaded = False
 
