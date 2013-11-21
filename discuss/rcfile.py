@@ -62,7 +62,7 @@ class RCFile:
         for line in rcfile:
             match = re.match(r"^(\d):(\d+):(\d+):([a-zA-Z\d.\-]+):([^:]+):([^:]+):$", line.strip())
             if not match:
-                raise ValueError("Malformed .meetings file entry")
+                raise ValueError("Malformed .meetings file entry: '%s'" % (line.strip(),))
             status = int(match.group(1))
             entry = {
                 'changed' : bool(status & 0x01),
