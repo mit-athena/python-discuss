@@ -124,7 +124,8 @@ class RCFile:
             raise ValueError("Attempted to touch the non-existent meeting")
 
         self.entries[meeting]['last_timestamp'] = int(time.time())
-        self.entries[meeting]['last_transaction'] = int(last)
+        if int(last) > self.entries[meeting]['last_transaction']:
+            self.entries[meeting]['last_transaction'] = int(last)
 
     def add(self, meeting):
         """Adds a given meeting object to .meetings file."""
