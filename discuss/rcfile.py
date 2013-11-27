@@ -60,16 +60,16 @@ class RCFile:
         rcfile = open(self.location, "r")
         entries = {}
         for line in rcfile:
-            match = re.match(r"^(\d):(\d+):(\d+):([a-z.\-]+):([^:]+):([^:]+):$", line.strip())
+            match = re.match(r"^(\d):(\d+):(\d+):([a-zA-Z\d.\-]+):([^:]+):([^:]+):$", line.strip())
             if not match:
-                raise ValueError("Malformed .meetings file entry")
+                raise ValueError("Malformed .meetings file entry: '%s'" % (line.strip(),))
             status = int(match.group(1))
             entry = {
                 'changed' : bool(status & 0x01),
                 'deleted' : bool(status & 0x02),
                 'last_timestamp' : int(match.group(2)),
                 'last_transaction' : int(match.group(3)),
-                'hostname' : match.group(4),
+                'hostname' : match.group(4).lower(),
                 'path' : match.group(5),
                 'names' : match.group(6).split(','),
             }
@@ -124,7 +124,8 @@ class RCFile:
             raise ValueError("Attempted to touch the non-existent meeting")
 
         self.entries[meeting]['last_timestamp'] = int(time.time())
-        self.entries[meeting]['last_transaction'] = int(last)
+        if int(last) > self.entries[meeting]['last_transaction']:
+            self.entries[meeting]['last_transaction'] = int(last)
 
     def add(self, meeting):
         """Adds a given meeting object to .meetings file."""
