@@ -155,3 +155,10 @@ class RCFile:
         self.entries[mtg_id] = entry
         self.recache()
 
+    def delete(self, meeting):
+        """Remove a meeting from the .meetings file"""
+        mtg = self.lookup(meeting)
+        if mtg not in self.entries:
+            raise ValueError("'%s' is not in meetings file." % meeting)
+        del self.entries[mtg]
+        self.recache()
