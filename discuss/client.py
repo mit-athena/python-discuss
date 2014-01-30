@@ -8,7 +8,7 @@
 from .rpc import USPBlock, RPCClient, ProtocolError
 from . import constants
 
-from functools import wraps
+from functools import total_ordering, wraps
 import datetime
 import socket
 
@@ -35,7 +35,7 @@ def autoreconnects(f):
 
 #
 # Here is a practcal description of discuss protocol:
-# 1. Connection is establised.
+# 1. Connection is established.
 # 2. Clients send server a block with a Kerberos ticket. Server is silent.
 # 3. Client sends commands. Each command has block type of "command code + 400",
 #    each response has to be 0 or an error code.
@@ -65,6 +65,11 @@ class Client(object):
         reply = self.rpc.request(request)
         return reply.read_string()
 
+    def close(self):
+        """Disconnect from the server."""
+
+        self.rpc.socket.close()
+
 class Meeting(object):
     """Discuss meeting."""
 
@@ -72,6 +77,7 @@ class Meeting(object):
         self.client = client
         self.rpc = client.rpc
         self.name = name
+        self.short_name = name.split('/')[-1]
         self.id = (self.rpc.server, name)
         self.info_loaded = False
 
@@ -294,6 +300,20 @@ class Meeting(object):
         if result != 0:
             raise DiscussError(result)
 
+    @autoreconnects
+    def undelete_transaction(self, trn_number):
+        """Undelete the transaction by its number."""
+
+        request = USPBlock(constants.RETRIEVE_TRN)
+        request.put_string(self.name)
+        request.put_long_integer(trn_number)
+        reply = self.rpc.request(request)
+
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
+@total_ordering
 class Transaction(object):
     """Discuss transaction. Returned by methods of the meeting object."""
 
@@ -321,3 +341,25 @@ class Transaction(object):
             raise DiscussError(result)
 
         return tfile.buffer
+
+    @autoreconnects
+    def delete(self):
+        """Delete the transaction."""
+
+        request = USPBlock(constants.DELETE_TRN)
+        request.put_string(self.meeting.name)
+        request.put_long_integer(self.number)
+        reply = self.rpc.request(request)
+
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
+
+    def __le__(self, other):
+        return self.number < other.number
+
+    def __eq__(self, other):
+        if isinstance(other, Transaction):
+            return self.number == other.number and self.meeting.name == other.meeting.name
+        else:
+            return False

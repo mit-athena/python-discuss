@@ -1,3 +1,15 @@
+python-discuss (1.2-0debathena1) unstable; urgency=low
+
+  * Release version 1.2.
+  * The server field of the meetings file can now contain mixed-case
+    letters, as well as numbers.
+  * A short_name attribute is available in class Meeting
+  * RCFile.touch() only bumps the last read transaction if it's higher
+    than the previous last read transaction number
+  * A new method to delete meetings (RCFile.delete) has been added.
+
+ -- Jonathan Reed <jdreed@mit.edu>  Thu, 30 Jan 2014 14:22:07 -0500
+
 python-discuss (1.1-0debathena1) UNRELEASED; urgency=low
 
   * Initial release.
