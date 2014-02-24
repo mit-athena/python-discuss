@@ -43,7 +43,7 @@ def autoreconnects(f):
 class Client(object):
     """Discuss client."""
 
-    def __init__(self, server, port = 2100, auth = True, timeout = None):
+    def __init__(self, server, port = 2100, auth = True, timeout = None, RPCClient=RPCClient):
         self.rpc = RPCClient(server, port, auth, timeout)
         if auth and self.who_am_i().startswith("???@"):
             raise ProtocolError("Authentication to server failed")

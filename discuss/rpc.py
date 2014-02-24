@@ -42,8 +42,10 @@
 #
 
 import errno
+import fcntl
 import socket
 from struct import pack, unpack, calcsize
+import subprocess
 from functools import partial
 
 from . import constants
@@ -314,3 +316,22 @@ class RPCClient(object):
             raise ProtocolError("Transport-level error")
         return reply
 
+class RPCLocalClient(RPCClient):
+    # Args are for compatibility with the remote RPC; most aren't used
+    def __init__(self, server, port, auth, timeout):
+        # Used as the id field on meeting objects, so copy it in
+        self.server = server
+        # port 2100 is the default port -> use the binary
+        if port == 2100:
+            port = '/usr/sbin/disserve'
+        self.cmd = port
+
+        self.connect()
+        self.make_wrapper()
+
+    def connect(self):
+        pair = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        subprocess.Popen([self.cmd], stdin=pair[1], close_fds=True)
+        pair[1].close()
+        fcntl.fcntl(pair[0].fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+        self.socket = pair[0]
