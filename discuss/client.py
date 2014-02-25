@@ -65,6 +65,15 @@ class Client(object):
         reply = self.rpc.request(request)
         return reply.read_string()
 
+    @autoreconnects
+    def create_mtg(self, location, long_mtg_name, public):
+        request = USPBlock(constants.CREATE_MTG)
+        request.put_string(location)
+        request.put_string(long_mtg_name)
+        request.put_boolean(public)
+        reply = self.rpc.request(request)
+        return reply.read_long_integer()
+
     def close(self):
         """Disconnect from the server."""
 
