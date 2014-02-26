@@ -309,6 +309,10 @@ class Meeting(object):
         if result != 0:
             raise DiscussError(result)
 
+    def ensure_access(self, principal, modes):
+        current = self.get_access(principal)
+        self.set_access(principal, current+modes)
+
     @autoreconnects
     def undelete_transaction(self, trn_number):
         """Undelete the transaction by its number."""
