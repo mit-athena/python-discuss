@@ -315,6 +315,11 @@ class Meeting(object):
         current = self.get_access(principal)
         self.set_access(principal, current+modes)
 
+    def remove_access(self, principal, modes):
+        current = self.get_access(principal)
+        new_modes = ''.join(c for c in current if not c in modes)
+        self.set_access(principal, new_modes)
+
     @autoreconnects
     def undelete_transaction(self, trn_number):
         """Undelete the transaction by its number."""
