@@ -72,7 +72,9 @@ class Client(object):
         request.put_string(long_mtg_name)
         request.put_boolean(public)
         reply = self.rpc.request(request)
-        return reply.read_long_integer()
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
 
     def close(self):
         """Disconnect from the server."""
