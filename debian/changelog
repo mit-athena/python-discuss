@@ -1,3 +1,9 @@
+python-discuss (1.2-0debathena2) unstable; urgency=low
+
+  * Install /etc/discuss files provided by the package
+
+ -- Victor Vasiliev <vasilvv@mit.edu>  Thu, 27 Mar 2014 03:02:04 -0400
+
 python-discuss (1.2-0debathena1) unstable; urgency=low
 
   * Release version 1.2.
