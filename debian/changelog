@@ -1,3 +1,9 @@
+python-discuss (1.2-0debathena3) unstable; urgency=low
+
+  * Avoid building for Python 2.6 on distributions which support it
+
+ -- Victor Vasiliev <vasilvv@mit.edu>  Fri, 28 Mar 2014 23:50:28 -0400
+
 python-discuss (1.2-0debathena2) unstable; urgency=low
 
   * Install /etc/discuss files provided by the package
