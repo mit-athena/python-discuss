@@ -340,7 +340,7 @@ class Transaction(object):
         if result != 0:
             raise DiscussError(result)
 
-        return tfile.buffer
+        return tfile.buffer.decode()
 
     @autoreconnects
     def delete(self):
