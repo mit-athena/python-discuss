@@ -1,3 +1,13 @@
+python-discuss (1.3-0debathena1) unstable; urgency=low
+
+  * Release version 1.3.
+  * Add Python 3 support
+  * Update Debian packaging for Python 3 support
+  * Drop Python 2 support
+  * Add additional functionality for pergamon
+
+ -- Alex Dehnert <adehnert@mit.edu>  Fri, 21 Feb 2025 02:21:24 -0400
+
 python-discuss (1.2-0debathena3) unstable; urgency=low
 
   * Avoid building for Python 2.6 on distributions which support it
