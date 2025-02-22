@@ -43,7 +43,7 @@ def autoreconnects(f):
 class Client(object):
     """Discuss client."""
 
-    def __init__(self, server, port = 2100, auth = True, timeout = None):
+    def __init__(self, server, port = 2100, auth = True, timeout = None, RPCClient=RPCClient):
         self.rpc = RPCClient(server, port, auth, timeout)
         if auth and self.who_am_i().startswith("???@"):
             raise ProtocolError("Authentication to server failed")
@@ -64,6 +64,17 @@ class Client(object):
         request = USPBlock(constants.WHO_AM_I)
         reply = self.rpc.request(request)
         return reply.read_string()
+
+    @autoreconnects
+    def create_mtg(self, location, long_mtg_name, public):
+        request = USPBlock(constants.CREATE_MTG)
+        request.put_string(location)
+        request.put_string(long_mtg_name)
+        request.put_boolean(public)
+        reply = self.rpc.request(request)
+        result = reply.read_long_integer()
+        if result != 0:
+            raise DiscussError(result)
 
     def close(self):
         """Disconnect from the server."""
@@ -300,6 +311,15 @@ class Meeting(object):
         if result != 0:
             raise DiscussError(result)
 
+    def ensure_access(self, principal, modes):
+        current = self.get_access(principal)
+        self.set_access(principal, current+modes)
+
+    def remove_access(self, principal, modes):
+        current = self.get_access(principal)
+        new_modes = ''.join(c for c in current if not c in modes)
+        self.set_access(principal, new_modes)
+
     @autoreconnects
     def undelete_transaction(self, trn_number):
         """Undelete the transaction by its number."""
@@ -340,7 +360,7 @@ class Transaction(object):
         if result != 0:
             raise DiscussError(result)
 
-        return tfile.buffer
+        return tfile.buffer.decode()
 
     @autoreconnects
     def delete(self):

@@ -28,7 +28,7 @@ def _read_server_list(filename):
 
         lines = map(remove_comments, lines)    # comments
         lines = map(str.strip, lines)          # whitespace
-        lines = filter(lambda x: x, lines)     # empty lines
+        lines = [x for x in lines if x]     # empty lines
 
         return lines
     except IOError as err:

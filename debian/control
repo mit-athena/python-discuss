@@ -1,14 +1,13 @@
 Source: python-discuss
 Section: python
-Priority: extra
+Priority: optional
 Maintainer: Debathena Project <debathena@mit.edu>
-Build-Depends: debhelper (>= 7), python (>= 2.7)
-X-Python-Version: 2.7
+Build-Depends: debhelper (>= 10), dh-python, python3-all
 Standards-Version: 3.9.4
 
-Package: python-discuss
+Package: python3-discuss
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python (>= 2.7), python-kerberos
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python3:Depends}, python3-kerberos
 Description: Python client for Project Athena forum system
  Pydiscuss provides a pure-Python implementation of discuss -- the forum
  protocol developed in late 80's and still used around MIT.

@@ -42,8 +42,10 @@
 #
 
 import errno
+import fcntl
 import socket
 from struct import pack, unpack, calcsize
+import subprocess
 from functools import partial
 
 from . import constants
@@ -91,9 +93,9 @@ def _get_krb5_ap_req(service, server):
         # bindings myself, but this is the yak I am not ready to shave at the
         # moment.
         
-        body_start = token_gssapi.find( chr(0x01) + chr(0x00) )    # 01 00 indicates that this is AP_REQ
-        if token_gssapi[0] != chr(0x60) or \
-        not (token_gssapi[2] == chr(0x06) or token_gssapi[4] == chr(0x06)) or \
+        body_start = token_gssapi.find(b'\x01\x00')   # 01 00 indicates that this is AP_REQ
+        if token_gssapi[0:1] != b'\x60' or \
+        not (token_gssapi[2:3] == b'\x06' or token_gssapi[4:5] == b'\x06') or \
         body_start == -1 or body_start < 8 or body_start > 64:
             raise ProtocolError("Invalid GSSAPI token provided by Python's Kerberos API")
 
@@ -135,13 +137,13 @@ class USPBlock(object):
         # technical reasons from 1980s I do not really want to know. This works
         # out because input is null-terminated and wire format is has length
         # specified.
-        encoded = s.replace("\r", "\r\0").replace("\n", "\r\n")
+        encoded = s.encode().replace(b"\r", b"\r\0").replace(b"\n", b"\r\n")
         self.put_cardinal(len(encoded))
         self.buffer += encoded
 
         # Padding
         if len(encoded) % 2 == 1:
-            self.buffer += "\0"
+            self.buffer += b"\0"
 
     def send(self, sock):
         """Sends the block over a socket."""
@@ -193,7 +195,7 @@ class USPBlock(object):
         omit = size + 1 if size % 2 ==1 else size  # due to padding
         encoded, self.buffer = self.buffer[0:size], self.buffer[omit:]
 
-        return encoded.replace("\r\n", "\n").replace("\r\0", "\r")
+        return encoded.replace(b"\r\n", b"\n").replace(b"\r\0", b"\r").decode()
 
     @staticmethod
     def receive(sock):
@@ -272,7 +274,9 @@ class RPCClient(object):
 
             auth_block.put_cardinal(len(authenticator))
             for byte in authenticator:
-                auth_block.put_cardinal(ord(byte))
+                if str == bytes:
+                    byte = ord(byte)
+                auth_block.put_cardinal(byte)
         else:
             auth_block.put_cardinal(0)
 
@@ -314,3 +318,22 @@ class RPCClient(object):
             raise ProtocolError("Transport-level error")
         return reply
 
+class RPCLocalClient(RPCClient):
+    # Args are for compatibility with the remote RPC; most aren't used
+    def __init__(self, server, port, auth, timeout):
+        # Used as the id field on meeting objects, so copy it in
+        self.server = server
+        # port 2100 is the default port -> use the binary
+        if port == 2100:
+            port = '/usr/sbin/disserve'
+        self.cmd = port
+
+        self.connect()
+        self.make_wrapper()
+
+    def connect(self):
+        pair = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        subprocess.Popen([self.cmd], stdin=pair[1], close_fds=True)
+        pair[1].close()
+        fcntl.fcntl(pair[0].fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+        self.socket = pair[0]
